@@ -141,6 +141,7 @@ chats
   pending_since    timestamptz           -- nullable; marca tanda sin procesar
   last_message_at  timestamptz
   last_seen_at     timestamptz           -- para ordenar la lista de selección
+  agent_attempts   int DEFAULT 0         -- reintentos del turno actual; se resetea al éxito
 
 inbox                                    -- cola efímera, se vacía cada turno
   id               bigserial PRIMARY KEY
@@ -276,8 +277,17 @@ worker, cada 30 s:
     3. formatear la tanda
     4. responses.create(...)
     5. aplicar tool calls → items + item_changes   (transacción)
-    6. borrar filas claimed, limpiar pending_since
+    6. borrar filas claimed, resetear agent_attempts
+    7. re-armar pending_since:
+         quedan filas sin claimar del jid → pending_since = min(sent_at) de esas filas
+         no quedan                         → pending_since = NULL
 ```
+
+El paso 7 no es cosmético. Mientras el turno corre siguen entrando mensajes, y el webhook hace
+`pending_since = coalesce(pending_since, now)` — que **no** actualiza nada porque ya estaba seteado.
+Si al terminar el turno se limpiara `pending_since` a secas, esos mensajes quedarían en `inbox`
+sin que nadie los volviera a despachar hasta el mensaje siguiente. Se re-arma en función de lo
+que quedó sin claimar.
 
 El lock por fila de chat evita que dos tandas del mismo chat corran en paralelo y bifurquen la sesión. `SKIP LOCKED` permite escalar a varios workers sin coordinación extra. Chats distintos corren en paralelo: no comparten nada.
 
@@ -287,10 +297,10 @@ El lock por fila de chat evita que dos tandas del mismo chat corran en paralelo 
 
 El worker corre cada 30 s y evalúa dos reglas:
 
-- **Aviso puntual** — items con `due_at - LEAD` alcanzado, `done_at IS NULL` y `notified_at IS NULL`. `LEAD` por defecto 60 minutos, configurable por env.
-- **Digest matinal** — a las 08:00 hora local, un mensaje con todo lo que vence hoy.
+- **Aviso puntual** — items con `due_at - LEAD` alcanzado, `done_at IS NULL` y `notified_at IS NULL`. `LEAD` por defecto 60 minutos, configurable por env. **Este es el único camino que escribe `items.notified_at`.**
+- **Digest matinal** — a las 08:00 hora local, un mensaje con todo lo que vence hoy. Es informativo y **no** toca `notified_at`, así que un item que aparece en el digest igual recibe después su aviso puntual. Son dos señales distintas: "esto es lo de hoy" y "esto vence en una hora".
 
-Items cuyo `due_at` tiene hora 00:00 (fecha sin hora) se avisan en el digest matinal, no a medianoche.
+Items cuyo `due_at` tiene hora 00:00 (fecha sin hora) se avisan solo en el digest matinal, no a medianoche: para esos el digest marca `notified_at`.
 
 ### 7.4 Avisos de cambios del agente
 
@@ -310,7 +320,7 @@ Cada 5 minutos el worker junta los `item_changes` con `notified_at IS NULL` y ma
 
 ### 7.5 Deshacer
 
-`GET /u/:token` donde el token es un HMAC corto de `item_changes.id` con un secreto del servidor — no hace falta columna. La ruta revierte el item usando la columna `antes`, escribe `undone_at`, y redirige a la PWA mostrando el resultado.
+`GET /u/:token`, donde el token son los primeros 10 caracteres del HMAC-SHA256 de `item_changes.id` en base64url, con un secreto del servidor — no hace falta columna. La ruta revierte el item usando la columna `antes`, escribe `undone_at`, y redirige a la PWA mostrando el resultado. Deshacer es idempotente: si `undone_at` ya está seteado, no hace nada y muestra el estado actual.
 
 Se eligió link antes que "respondé 1 para deshacer" porque parsear respuestas obliga a mantener estado conversacional en el chat propio, que es justo el chat donde también se captura libremente — se pisarían.
 
@@ -318,7 +328,7 @@ Se eligió link antes que "respondé 1 para deshacer" porque parsear respuestas 
 
 ## 8. Web app (PWA)
 
-Instalable en celular y desktop. Online-only en v1: el modo offline llega con Web Push en v2.
+Instalable en celular y desktop. Online-only en v1 — la lectura offline del inbox cacheado queda para v2.
 
 | Ruta | Contenido |
 |---|---|
@@ -363,7 +373,7 @@ Esto acota el daño; no lo elimina. El peor caso realista es un item basura crea
 
 | Falla | Comportamiento |
 |---|---|
-| OpenAI caído o rate-limited | La tanda queda en `inbox` con `claimed_at` limpio. Reintento con backoff exponencial, tope 5 intentos, después queda pendiente y se loguea. Los recordatorios **no** se ven afectados. |
+| OpenAI caído o rate-limited | Se limpia `claimed_at` de las filas de esa tanda y se incrementa `chats.agent_attempts`. Backoff exponencial sobre `agent_attempts`; al llegar a 5 el chat se marca en la UI como "agente detenido" y deja de despacharse hasta que se destrabe manualmente. Los recordatorios **no** se ven afectados. |
 | Evolution caído | Los avisos quedan con `notified_at` nulo y se reintentan. No se pierden. |
 | `conversation_id` inválido o perdido | Se crea una conversación nueva. Se pierde historial de contexto, no datos: los items y el log son locales. |
 | Webhook duplicado | El `UNIQUE` sobre `wa_message_id` lo descarta antes de tocar OpenAI. |
