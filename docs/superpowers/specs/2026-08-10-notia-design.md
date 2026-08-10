@@ -385,7 +385,7 @@ Esto acota el daño; no lo elimina. El peor caso realista es un item basura crea
 ## 11. Supuestos a verificar antes de codear
 
 1. **Semántica de `responses.create` sobre una conversación.** El diseño manda la tanda como `input` con `conversation` seteado. Verificar que los items previos de la conversación se incluyan en el contexto tal como se espera.
-2. **ID determinístico de conversación.** No se pudo confirmar que el `conv_id` pueda elegirlo el cliente; todo indica que lo genera el servidor. El diseño no lo necesita —guarda el mapeo en `chats.conversation_id` y además escribe `metadata: { wa_jid }`—, pero conviene confirmarlo.
+2. **ID determinístico de conversación.** No se pudo confirmar que el `conv_id` pueda elegirlo el cliente; todo indica que lo genera el servidor. El diseño no lo necesita —guarda el mapeo en `chats.conversation_id` y además escribe `metadata: { wa_jid }`—, pero conviene confirmarlo. (simplemente obtene el id que te da openai y guardalo para poder usarlo, no me refiero estrictamente a usar nuestro id, solo tiene que guardar el id por chat id_openai <-> id_chat)
 3. **Retención de conversaciones.** La doc indica que los items adjuntos a una conversación no están sujetos al TTL de 30 días. Confirmar antes de depender de eso.
 4. **`store: false` / retención cero.** Si la cuenta tiene retención cero, la Conversations API no aplica y hay que caer al array de mensajes del lado nuestro. Verificar la configuración de la cuenta.
 5. **Umbral del medidor de contexto largo de Luna.** Confirmar dónde está para asegurar que `compact_threshold: 40_000` queda por debajo.

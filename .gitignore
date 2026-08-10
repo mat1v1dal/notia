@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# secretos — nunca versionar
+.env
+.env.*
+!.env.example
+
+# datos locales
+pgdata/
+evolution-data/
