@@ -14,5 +14,8 @@
     "drizzle-kit": "^0.31.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
   }
 }

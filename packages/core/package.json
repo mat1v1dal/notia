@@ -10,7 +10,8 @@
     "./testing": "./src/testing.ts"
   },
   "dependencies": {
-    "drizzle-orm": "^0.44.0"
+    "drizzle-orm": "^0.44.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.0"
