@@ -1,6 +1,8 @@
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { connect } from "@notia/core/connect";
+import { relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
 
 function requerido(nombre: string): string {
@@ -19,8 +21,13 @@ const app = createApp({
 });
 
 // La PWA buildeada se sirve desde la misma API: un solo origen, sin CORS.
-app.use("/*", serveStatic({ root: "./public" }));
-app.get("*", serveStatic({ path: "./public/index.html" }));
+// serveStatic resuelve contra el directorio de trabajo, que no es el mismo
+// en el contenedor (/app) que corriendo local (packages/api). Se calcula
+// desde la ubicación del módulo para que ande en los dos casos.
+const publico = relative(process.cwd(), fileURLToPath(new URL("../public", import.meta.url)));
+
+app.use("/*", serveStatic({ root: publico }));
+app.get("*", serveStatic({ path: `${publico}/index.html` }));
 
 const port = Number(process.env.PORT ?? 3000);
 serve({ fetch: app.fetch, port });
