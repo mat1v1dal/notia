@@ -1,0 +1,16 @@
+# Override para correr en esta máquina: sin Caddy (no hay dominio ni
+# certificado) y con puertos que no chocan con el stack de botpico.
+services:
+  caddy:
+    profiles: ["produccion"]
+
+  notia-api:
+    ports:
+      - "3080:3000"
+
+  evolution-api:
+    ports:
+      - "8081:8080"
+    environment:
+      # La instancia de notia es propia: no toca la que ya tenés en 8080.
+      CONFIG_SESSION_PHONE_CLIENT: Notia
