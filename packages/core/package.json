@@ -7,6 +7,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
+    "./agent": "./src/agent.ts",
+    "./dispatch": "./src/dispatch.ts",
+    "./ingest": "./src/ingest.ts",
+    "./items": "./src/items.ts",
     "./testing": "./src/testing.ts"
   },
   "dependencies": {

@@ -6,7 +6,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --build",
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/worker",
     "db:generate": "drizzle-kit generate --config=packages/core/drizzle.config.ts"
   },
   "devDependencies": {

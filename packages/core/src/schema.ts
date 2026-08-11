@@ -122,3 +122,14 @@ export type InboxRow = typeof inbox.$inferSelect;
 export type Item = typeof items.$inferSelect;
 export type NewItem = typeof items.$inferInsert;
 export type ItemChange = typeof itemChanges.$inferSelect;
+
+/**
+ * Estado operativo de los jobs periódicos. No es dominio: existe para que
+ * un reinicio del worker no repita un digest ya enviado.
+ */
+export const jobRuns = pgTable("job_runs", {
+  name: text("name").primaryKey(),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }).notNull(),
+});
+
+export type JobRun = typeof jobRuns.$inferSelect;

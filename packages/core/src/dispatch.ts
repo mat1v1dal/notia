@@ -18,6 +18,9 @@ export type ModelClient = {
     conversationId: string | null;
     instructions: string;
     input: string;
+    /** Se adjunta a la conversación cuando hay que crearla, para poder
+     * reconstruir el mapeo chat ↔ conversación desde el lado de OpenAI. */
+    conversationMetadata?: Record<string, string>;
   }): Promise<ModelTurn>;
 
   submitToolOutputs(args: {
@@ -113,6 +116,7 @@ async function dispatchChat(
       conversationId: chat.conversationId,
       instructions,
       input,
+      conversationMetadata: { wa_jid: chat.jid },
     });
 
     let rondas = 0;

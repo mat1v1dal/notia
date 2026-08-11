@@ -1,5 +1,5 @@
 import { beforeEach, expect, test } from "vitest";
-import { applyToolCall } from "./agent.js";
+import { applyToolCall, NOMBRES_DE_HERRAMIENTAS, toolDefinitions } from "./agent.js";
 import type { Db } from "./db.js";
 import { createItem, openItemsForChat } from "./items.js";
 import { chats, itemChanges, items } from "./schema.js";
@@ -141,4 +141,39 @@ test("un due_at que no es fecha válida devuelve error y no crea el item", async
 
   expect(JSON.parse(out.output).ok).toBe(false);
   expect(await db.select().from(items)).toHaveLength(0);
+});
+
+test("las definiciones expuestas cubren exactamente las herramientas soportadas", () => {
+  const declaradas = toolDefinitions().map((t) => t.name).sort();
+  expect(declaradas).toEqual([...NOMBRES_DE_HERRAMIENTAS].sort());
+});
+
+test("no se expone ninguna herramienta de borrado", () => {
+  expect(toolDefinitions().map((t) => t.name)).not.toContain("borrar_item");
+});
+
+test("cada definición declara tipo función, descripción útil y prohíbe extras", () => {
+  for (const def of toolDefinitions()) {
+    expect(def.type).toBe("function");
+    expect(def.parameters.additionalProperties).toBe(false);
+    expect(def.description.length).toBeGreaterThan(20);
+  }
+});
+
+test("una propiedad inventada por el modelo se rechaza en vez de ignorarse", async () => {
+  const out = await applyToolCall(
+    db,
+    CTX,
+    call("crear_item", { content: "algo", motivo: "x", borrar_todo: true }),
+  );
+
+  expect(JSON.parse(out.output).ok).toBe(false);
+  expect(await db.select().from(items)).toHaveLength(0);
+});
+
+test("editar_item y cerrar_item exigen motivo", () => {
+  for (const nombre of ["crear_item", "editar_item", "cerrar_item"]) {
+    const def = toolDefinitions().find((t) => t.name === nombre);
+    expect(def!.parameters.required).toContain("motivo");
+  }
 });

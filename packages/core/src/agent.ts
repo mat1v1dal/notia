@@ -22,31 +22,51 @@ const fechaIso = z
 
 const contexto = z.enum(["facultad", "trabajo", "personal"]);
 
+const motivo = z
+  .string()
+  .min(1)
+  .describe("Qué parte de la conversación justifica esto, citando quién lo dijo.");
+
+/**
+ * Objetos estrictos: una propiedad inventada por el modelo es un error que
+ * vuelve como resultado, no algo que se ignora en silencio.
+ */
 const schemas = {
-  crear_item: z.object({
-    content: z.string().min(1),
-    motivo: z.string().min(1),
-    url: z.string().optional(),
-    due_at: fechaIso.optional(),
-    context: contexto.optional(),
-    tags: z.array(z.string()).optional(),
-  }),
-  editar_item: z.object({
-    id: z.number().int().positive(),
-    motivo: z.string().min(1),
-    content: z.string().min(1).optional(),
-    url: z.string().optional(),
-    due_at: fechaIso.nullable().optional(),
-    context: contexto.optional(),
-    tags: z.array(z.string()).optional(),
-  }),
-  cerrar_item: z.object({
-    id: z.number().int().positive(),
-    motivo: z.string().min(1),
-  }),
-  buscar_items: z.object({
-    query: z.string().min(1),
-  }),
+  crear_item: z
+    .strictObject({
+      content: z.string().min(1).describe("Qué hay que hacer, en una línea."),
+      motivo,
+      url: z.string().optional().describe("Link a material, si la conversación lo trae."),
+      due_at: fechaIso.optional().describe("Vencimiento en ISO 8601 con zona."),
+      context: contexto.optional(),
+      tags: z.array(z.string()).optional(),
+    })
+    .describe("Crea un pendiente nuevo a partir de algo dicho en la conversación."),
+
+  editar_item: z
+    .strictObject({
+      id: z.number().int().positive().describe("Id del item, como aparece en el snapshot."),
+      motivo,
+      content: z.string().min(1).optional(),
+      url: z.string().optional(),
+      due_at: fechaIso
+        .nullable()
+        .optional()
+        .describe("Nueva fecha en ISO 8601. null quita la fecha. Omitir la deja igual."),
+      context: contexto.optional(),
+      tags: z.array(z.string()).optional(),
+    })
+    .describe(
+      "Actualiza un pendiente que ya existe. Usar esto —y no crear otro— cuando la conversación cambia la fecha o el detalle de algo ya registrado.",
+    ),
+
+  cerrar_item: z
+    .strictObject({ id: z.number().int().positive(), motivo })
+    .describe("Marca un pendiente como hecho. Es reversible; no borra nada."),
+
+  buscar_items: z
+    .strictObject({ query: z.string().min(1) })
+    .describe("Busca pendientes de este chat por texto, para no duplicar algo que ya existe."),
 } as const;
 
 export type ToolName = keyof typeof schemas;
@@ -224,4 +244,38 @@ export async function buildInstructions(
     `Items abiertos de este chat:`,
     await itemsSnapshot(db, jid),
   ].join("\n");
+}
+
+/** Definición de una herramienta tal como la espera la Responses API. */
+export type ToolDefinition = {
+  type: "function";
+  name: string;
+  description: string;
+  parameters: Record<string, unknown> & {
+    additionalProperties: boolean;
+    required?: string[];
+  };
+};
+
+/**
+ * Las herramientas que se le declaran al modelo, derivadas de los mismos
+ * schemas que después validan sus argumentos. Una sola fuente de verdad:
+ * no puede haber drift entre lo declarado y lo aceptado.
+ */
+export function toolDefinitions(): ToolDefinition[] {
+  return NOMBRES_DE_HERRAMIENTAS.map((name) => {
+    const { description, ...parameters } = z.toJSONSchema(schemas[name], {
+      target: "draft-7",
+    }) as Record<string, unknown> & { description?: string };
+
+    return {
+      type: "function" as const,
+      name,
+      description: description ?? "",
+      parameters: {
+        ...parameters,
+        additionalProperties: false,
+      },
+    } as ToolDefinition;
+  });
 }
