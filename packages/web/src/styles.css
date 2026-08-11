@@ -1,0 +1,472 @@
+/*
+  Papel cuadriculado de ingeniería.
+
+  Dos tintas de corrección sobre papel frío: roja para lo que vence,
+  verde para lo que decidió el agente. La barra verde al margen es la
+  única marca que distingue lo que anotó la máquina de lo que anotaste vos.
+*/
+
+:root {
+  --papel: #f2f5f7;
+  --papel-hoja: #fafcfd;
+  --linea: #dbe5eb;
+  --linea-fuerte: #c3d2db;
+
+  --tinta: #16222b;
+  --tinta-suave: #5a6b77;
+  --tinta-tenue: #8a9aa5;
+
+  --roja: #b3261e; /* vence, vencido */
+  --verde: #1e6f5c; /* lo hizo el agente */
+
+  --grilla: 22px;
+  --radio: 3px;
+
+  --mono: ui-monospace, "SF Mono", "IBM Plex Mono", "Roboto Mono", Menlo, monospace;
+  --texto: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--texto);
+  color: var(--tinta);
+  background-color: var(--papel);
+  /* La grilla del cuaderno. Tenue: se lee como textura, no como tabla. */
+  background-image:
+    linear-gradient(var(--linea) 1px, transparent 1px),
+    linear-gradient(90deg, var(--linea) 1px, transparent 1px);
+  background-size: var(--grilla) var(--grilla);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── estructura ──────────────────────────────────────────────────────────── */
+
+.app {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 0 1rem calc(5.5rem + env(safe-area-inset-bottom));
+}
+
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 0 0.75rem;
+  background: linear-gradient(var(--papel) 72%, transparent);
+}
+
+.marca {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.marca span {
+  color: var(--verde);
+}
+
+.cuenta {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--tinta-tenue);
+}
+
+/* ── secciones ───────────────────────────────────────────────────────────── */
+
+.seccion {
+  margin-top: 1.75rem;
+}
+
+.seccion-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+  margin: 0 0 0.6rem;
+}
+
+.seccion-titulo::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--linea-fuerte);
+}
+
+.seccion-titulo.urgente {
+  color: var(--roja);
+}
+
+.seccion-titulo.urgente::after {
+  background: color-mix(in srgb, var(--roja) 35%, transparent);
+}
+
+/* ── item ────────────────────────────────────────────────────────────────── */
+
+.item {
+  position: relative;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  background: var(--papel-hoja);
+  border: 1px solid var(--linea-fuerte);
+  border-radius: var(--radio);
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.5rem;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+/* La marca del agente: barra verde al margen, como corrección en el cuaderno. */
+.item.del-agente {
+  border-left: 3px solid var(--verde);
+}
+
+.item.cerrandose {
+  opacity: 0;
+  transform: translateX(-0.5rem);
+}
+
+.tilde {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.1rem;
+  border: 1.5px solid var(--tinta-tenue);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tilde:hover {
+  border-color: var(--verde);
+  background: color-mix(in srgb, var(--verde) 12%, transparent);
+}
+
+.tilde.hecho {
+  border-color: var(--verde);
+  background: var(--verde);
+}
+
+.item-cuerpo {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-linea {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.item-texto {
+  font-size: 0.98rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.item.hecho .item-texto {
+  text-decoration: line-through;
+  color: var(--tinta-tenue);
+}
+
+.item-cuando {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--tinta-suave);
+}
+
+.item-cuando.vencido {
+  color: var(--roja);
+  font-weight: 600;
+}
+
+.item-link {
+  display: inline-block;
+  margin-top: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--verde);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--verde) 40%, transparent);
+}
+
+/* La anotación al margen: por qué existe este item. */
+.procedencia {
+  margin-top: 0.45rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid color-mix(in srgb, var(--verde) 45%, transparent);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--tinta-suave);
+}
+
+.procedencia cite {
+  font-style: normal;
+  color: var(--tinta);
+}
+
+.procedencia .chat {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--verde);
+}
+
+/* ── navegación ──────────────────────────────────────────────────────────── */
+
+.nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--papel) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--linea-fuerte);
+}
+
+.nav a {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--tinta-suave);
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radio);
+}
+
+.nav a[aria-current="page"] {
+  color: var(--tinta);
+  background: var(--papel-hoja);
+  box-shadow: inset 0 0 0 1px var(--linea-fuerte);
+}
+
+/* ── formularios y controles ─────────────────────────────────────────────── */
+
+.campo {
+  width: 100%;
+  font: inherit;
+  color: var(--tinta);
+  background: var(--papel-hoja);
+  border: 1px solid var(--linea-fuerte);
+  border-radius: var(--radio);
+  padding: 0.7rem 0.8rem;
+}
+
+.campo:focus-visible,
+.tilde:focus-visible,
+.nav a:focus-visible,
+.boton:focus-visible {
+  outline: 2px solid var(--verde);
+  outline-offset: 2px;
+}
+
+.boton {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--papel-hoja);
+  background: var(--tinta);
+  border: none;
+  border-radius: var(--radio);
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+}
+
+.boton.tenue {
+  color: var(--tinta-suave);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--linea-fuerte);
+}
+
+.fila {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* ── chats ───────────────────────────────────────────────────────────────── */
+
+.chat-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--papel-hoja);
+  border: 1px solid var(--linea-fuerte);
+  border-radius: var(--radio);
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 0.4rem;
+}
+
+.chat-nombre {
+  font-size: 0.95rem;
+}
+
+.chat-jid {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--tinta-tenue);
+  word-break: break-all;
+}
+
+/* Interruptor: el chat es un interruptor, la UI lo dice literalmente. */
+.interruptor {
+  flex: none;
+  width: 2.75rem;
+  height: 1.6rem;
+  border-radius: 1rem;
+  border: 1px solid var(--linea-fuerte);
+  background: var(--papel);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.interruptor::after {
+  content: "";
+  position: absolute;
+  top: 0.18rem;
+  left: 0.2rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: var(--tinta-tenue);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.interruptor[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--verde) 18%, transparent);
+  border-color: var(--verde);
+}
+
+.interruptor[aria-pressed="true"]::after {
+  transform: translateX(1.1rem);
+  background: var(--verde);
+}
+
+/* ── log ─────────────────────────────────────────────────────────────────── */
+
+.cambio {
+  border-left: 2px solid var(--linea-fuerte);
+  padding: 0 0 1.1rem 0.9rem;
+  position: relative;
+}
+
+.cambio::before {
+  content: "";
+  position: absolute;
+  left: -0.3rem;
+  top: 0.35rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--linea-fuerte);
+}
+
+.cambio.del-agente {
+  border-left-color: color-mix(in srgb, var(--verde) 45%, transparent);
+}
+
+.cambio.del-agente::before {
+  background: var(--verde);
+}
+
+.cambio.deshecho {
+  opacity: 0.5;
+}
+
+.cambio-encabezado {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.cambio-accion {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cambio-fecha {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--tinta-tenue);
+}
+
+/* ── estados ─────────────────────────────────────────────────────────────── */
+
+.vacio {
+  padding: 2.5rem 0;
+  text-align: center;
+  color: var(--tinta-suave);
+  line-height: 1.6;
+}
+
+.vacio strong {
+  display: block;
+  color: var(--tinta);
+  margin-bottom: 0.3rem;
+}
+
+.error {
+  border-left: 3px solid var(--roja);
+  background: color-mix(in srgb, var(--roja) 6%, var(--papel-hoja));
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radio);
+  font-size: 0.9rem;
+}
+
+.entrada {
+  position: fixed;
+  bottom: calc(3.4rem + env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  z-index: 15;
+  padding: 0.5rem 1rem;
+}
+
+.entrada-caja {
+  max-width: 44rem;
+  margin: 0 auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

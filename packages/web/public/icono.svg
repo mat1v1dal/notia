@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#F2F5F7"/>
+  <g stroke="#DBE5EB" stroke-width="6">
+    <path d="M0 128h512M0 224h512M0 320h512M0 416h512"/>
+    <path d="M128 0v512M224 0v512M320 0v512M416 0v512"/>
+  </g>
+  <!-- la barra al margen: la marca del agente -->
+  <rect x="96" y="128" width="20" height="256" rx="10" fill="#1E6F5C"/>
+  <g stroke="#16222B" stroke-width="26" stroke-linecap="round">
+    <path d="M160 192h224"/>
+    <path d="M160 272h160"/>
+    <path d="M160 352h96"/>
+  </g>
+</svg>

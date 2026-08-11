@@ -10,3 +10,6 @@ dist/
 # datos locales
 pgdata/
 evolution-data/
+
+# la PWA compilada la sirve la API; se genera con pnpm build:web
+packages/api/public/

@@ -5,8 +5,9 @@
   "packageManager": "pnpm@10.28.1",
   "scripts": {
     "test": "vitest run",
+    "build:web": "pnpm --filter @notia/web build",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/api && tsc --noEmit -p packages/worker",
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/api && tsc --noEmit -p packages/worker && tsc --noEmit -p packages/web",
     "db:generate": "drizzle-kit generate --config=packages/core/drizzle.config.ts"
   },
   "devDependencies": {
