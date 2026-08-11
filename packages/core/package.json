@@ -11,13 +11,19 @@
     "./dispatch": "./src/dispatch.ts",
     "./ingest": "./src/ingest.ts",
     "./items": "./src/items.ts",
-    "./testing": "./src/testing.ts"
+    "./testing": "./src/testing.ts",
+    "./notifier": "./src/notifier.ts",
+    "./scheduler": "./src/scheduler.ts",
+    "./undo": "./src/undo.ts",
+    "./connect": "./src/connect.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.0",
+    "pg": "^8.23.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.3.0"
+    "@electric-sql/pglite": "^0.3.0",
+    "@types/pg": "^8.21.0"
   }
 }
