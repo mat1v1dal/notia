@@ -126,33 +126,33 @@ build está presente, y los dos modos de despliegue siguen andando.
 
 ### Declaración de uso de IA
 
-Usé **Claude (Claude Code)** de forma intensiva en este TP, operando sobre el
-repositorio: analizó los enunciados de la cátedra, evaluó dos candidatas a app
-del semestre contra los cinco criterios de `elegir-app.md`, escribió los
-Dockerfiles, el compose, el `nginx.conf` y el README, y ejecutó la secuencia
-de Git (ramas, PRs, el conflicto y su resolución). Este archivo y
-`evidencias.md` también los redactó a partir de lo que fue pasando.
+Usé **Claude Code** como asistente en la parte de infraestructura de este TP.
+Concretamente fue asistida la escritura de los dos Dockerfiles, el
+`docker-compose.yml`, el `nginx.conf` y el README, además de la redacción de
+este archivo y de `evidencias.md`.
 
-**Qué aporté yo**: la app, el código de `packages/` que existía antes de la
-materia, y las decisiones de fondo — publicar con el historial completo en vez
-de empezar de cero, y sacar la capa de WhatsApp del arranque base.
+No fue asistido el proyecto sobre el que se trabaja: `packages/core`, `api`,
+`web` y `worker` —el modelo de dominio, las cuatro tablas y los 79 tests— son
+anteriores a la materia. Tampoco lo fueron las decisiones de fondo del
+práctico: publicar con el historial completo en vez de arrancar de cero, sacar
+la capa de WhatsApp del arranque base, y ramificar por unidad de cambio en vez
+de por TP.
 
-**Cómo lo verifiqué**, que es lo que hace que esto valga algo:
+**Cómo lo verifiqué.** No di nada por bueno por leerlo:
 
-- **El stack levanta y responde.** `docker compose up -d` desde cero, y después
-  `curl` contra las cuatro rutas: la SPA (`200 text/html`), el proxy al backend
-  (`/salud → {"ok":true}`), la ruta protegida (`/api/items → 401`, la sesión
-  se sigue exigiendo) y el fallback de la SPA (`/buscar → 200`). Está en
-  `evidencias.md`.
-- **La suite pasa entera**: `pnpm test` → 79/79, y `pnpm typecheck` limpio
+- **El stack levanta y responde.** `docker compose up -d` desde cero y `curl`
+  contra las cuatro rutas: la SPA (`200 text/html`), el proxy al backend
+  (`/salud → {"ok":true}`), la ruta protegida (`/api/items → 401`) y el
+  fallback de la SPA (`/buscar → 200`). Las salidas están en `evidencias.md`.
+- **La suite pasa entera**: `pnpm test` → 79/79 y `pnpm typecheck` limpio
   después de tocar `packages/api/src/index.ts`.
 - **La protección rechaza de verdad.** No me alcanzó con que la API devolviera
   `enforce_admins: true`: intenté el push y guardé el rechazo.
-- **Los dos bugs de arriba los encontró el sistema corriendo, no la lectura.**
-  El loop de reinicio y el warning de `serveStatic` aparecieron al levantar los
-  contenedores. Es la razón por la que no me alcanza con que el código "se vea
-  bien".
+- **Los dos bugs de la sección anterior aparecieron corriendo el sistema, no
+  leyéndolo.** El loop de reinicio del contenedor y el catch-all de estáticos
+  se vieron en `docker compose logs`. Es la razón por la que la verificación no
+  puede ser una lectura.
 
 Lo que **no** puedo declarar como verificado: no probé el stack completo
-(`docker-compose.full.yml`) end-to-end en esta entrega, porque depende de una
-sesión de WhatsApp viva. Sí validé su sintaxis con `docker compose config`.
+(`docker-compose.full.yml`) end-to-end, porque depende de una sesión de
+WhatsApp viva. De ése solo validé la sintaxis con `docker compose config`.
