@@ -1,0 +1,29 @@
+# El contexto de build es la raíz del monorepo: las dos imágenes necesitan
+# el lockfile y los package.json de todos los paquetes para instalar.
+
+node_modules
+**/node_modules
+
+# Artefactos de build: se regeneran dentro de la imagen.
+dist
+**/dist
+packages/api/public
+*.tsbuildinfo
+
+# Secretos: jamás entran al contexto de build. Una capa de una imagen es
+# pública para cualquiera que la baje del registry.
+.env
+.env.*
+!.env.example
+
+# Datos y estado local
+pgdata
+evolution-data
+
+# Cosas que no cambian lo que se construye, pero invalidan el cache si viajan
+.git
+.github
+.claude
+docs
+*.md
+!README.md
