@@ -13,3 +13,6 @@ evolution-data/
 
 # la PWA compilada la sirve la API; se genera con pnpm build:web
 packages/api/public/
+
+# configuración local del agente
+.claude/
