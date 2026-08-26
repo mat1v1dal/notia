@@ -1,0 +1,53 @@
+# syntax=docker/dockerfile:1
+
+# Imagen de la API. Multi-stage: la etapa pesada trae todo el toolchain y se
+# descarta; a la final solo llegan las dependencias de producción y el código.
+
+# ---- Etapa 1: dependencias completas (incluye devDependencies) ----
+# Acá viven typescript, vitest, drizzle-kit, vite y el resto del toolchain.
+# Nada de esto viaja a la imagen final: existe para que el build pueda correr
+# y para tener con qué comparar el tamaño.
+FROM node:24-alpine AS deps
+RUN corepack enable
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/core/package.json packages/core/
+COPY packages/api/package.json packages/api/
+COPY packages/web/package.json packages/web/
+COPY packages/worker/package.json packages/worker/
+RUN pnpm install --frozen-lockfile
+
+# ---- Etapa 2: solo dependencias de producción ----
+# Mismo lockfile, sin devDependencies. Se instala desde cero en vez de podar
+# la etapa anterior para que el resultado sea determinístico.
+FROM node:24-alpine AS prod-deps
+RUN corepack enable
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/core/package.json packages/core/
+COPY packages/api/package.json packages/api/
+COPY packages/web/package.json packages/web/
+COPY packages/worker/package.json packages/worker/
+RUN pnpm install --prod --frozen-lockfile
+
+# ---- Etapa 3: runtime ----
+FROM node:24-alpine AS runtime
+RUN corepack enable
+ENV NODE_ENV=production
+WORKDIR /app
+
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=prod-deps /app/packages/core/node_modules ./packages/core/node_modules
+COPY --from=prod-deps /app/packages/api/node_modules ./packages/api/node_modules
+
+COPY package.json pnpm-workspace.yaml ./
+# Solo los dos paquetes que la API necesita. `core` trae además las
+# migraciones, que `connect()` corre al arrancar.
+COPY packages/core packages/core
+COPY packages/api packages/api
+
+EXPOSE 3000
+
+# El código corre en TypeScript vía tsx: no hay paso de build que pueda
+# quedar desincronizado con lo que testeamos.
+CMD ["pnpm", "--filter", "@notia/api", "start"]

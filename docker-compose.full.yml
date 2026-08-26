@@ -1,0 +1,95 @@
+# Capa opcional: la ingesta por WhatsApp.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.full.yml up -d
+#
+# Queda fuera del stack base porque depende de cosas que no controlamos: una
+# API key de OpenAI con saldo y una sesión de WhatsApp que se inicia
+# escaneando un QR. El sistema funciona sin esta capa — se pierde la ingesta
+# automática, no la app.
+
+services:
+  postgres:
+    volumes:
+      # Evolution guarda su sesión en su propia base, dentro del mismo motor.
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+
+  evolution-api:
+    image: evoapicloud/evolution-api:latest
+    restart: unless-stopped
+    ports:
+      - "${EVOLUTION_PORT:-8081}:8080"
+    environment:
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      SERVER_URL: http://evolution-api:8080
+      CONFIG_SESSION_PHONE_CLIENT: Notia
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://notia:${POSTGRES_PASSWORD}@postgres:5432/evolution
+      DATABASE_CONNECTION_CLIENT_NAME: notia
+      # Evolution archiva la conversación entera por defecto. Apagado: notia
+      # no guarda mensajes de chats que no observás, y esto lo haría igual
+      # por debajo. Lo único que se persiste es la sesión de la instancia.
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "false"
+      DATABASE_SAVE_MESSAGE_UPDATE: "false"
+      DATABASE_SAVE_DATA_CONTACTS: "false"
+      DATABASE_SAVE_DATA_CHATS: "false"
+      DATABASE_SAVE_DATA_LABELS: "false"
+      DATABASE_SAVE_DATA_HISTORIC: "false"
+      WEBHOOK_GLOBAL_ENABLED: "true"
+      WEBHOOK_GLOBAL_URL: http://notia-api:3000/webhook/whatsapp
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "false"
+    volumes:
+      # Sin este volumen se pierde la sesión de WhatsApp y hay que
+      # re-escanear el QR en cada reinicio.
+      - evolution-data:/evolution/instances
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  notia-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    command: pnpm --filter @notia/worker start
+    environment:
+      DATABASE_URL: postgres://notia:${POSTGRES_PASSWORD}@postgres:5432/notia
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6-luna}
+      COMPACT_THRESHOLD: ${COMPACT_THRESHOLD:-40000}
+      EVOLUTION_URL: http://evolution-api:8080
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      MI_JID: ${MI_JID}
+      APP_BASE_URL: ${APP_BASE_URL}
+      APP_SECRET: ${APP_SECRET}
+      TZ_USUARIO: ${TZ_USUARIO:-America/Argentina/Buenos_Aires}
+      LEAD_MINUTOS: ${LEAD_MINUTOS:-60}
+    depends_on:
+      # La API corre las migraciones al arrancar; el worker las asume hechas.
+      notia-api:
+        condition: service_healthy
+
+  # Solo para el despliegue en un VPS con dominio propio:
+  #   docker compose ... --profile produccion up -d
+  # Termina TLS y saca el certificado solo. En local no hace falta: notia-web
+  # ya expone la app por HTTP en WEB_PORT.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["produccion"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - notia-web
+
+volumes:
+  evolution-data:
+  caddy-data:
+  caddy-config:
