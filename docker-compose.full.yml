@@ -52,7 +52,7 @@ services:
       context: .
       dockerfile: Dockerfile.api
     restart: unless-stopped
-    command: pnpm exec tsx packages/worker/src/index.ts
+    command: pnpm --filter @notia/worker start
     environment:
       DATABASE_URL: postgres://notia:${POSTGRES_PASSWORD}@postgres:5432/notia
       OPENAI_API_KEY: ${OPENAI_API_KEY}
