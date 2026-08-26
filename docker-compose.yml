@@ -1,17 +1,13 @@
-services:
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - notia-api
+# Stack evaluable de notia: frontend + backend + base de datos.
+#
+# Son los tres servicios que necesita cualquiera para levantar el sistema y
+# usarlo desde el navegador. No requiere ninguna credencial de terceros.
+#
+# La ingesta por WhatsApp (worker + Evolution API + OpenAI) es una capa
+# opcional que vive en docker-compose.full.yml — depende de una API paga y de
+# escanear un QR, así que se mantiene fuera del arranque base a propósito.
 
+services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -20,82 +16,49 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: notia
     volumes:
+      # Volumen nombrado: los datos sobreviven a `down`, y solo los borra
+      # `down -v`. Sin esto, cada recreación del contenedor arranca vacía.
       - pgdata:/var/lib/postgresql/data
-      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U notia"]
+      # `depends_on` solo espera a que el contenedor arranque, no a que
+      # Postgres acepte conexiones. Esto último es lo que la API necesita.
+      test: ["CMD-SHELL", "pg_isready -U notia -d notia"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  evolution-api:
-    image: evoapicloud/evolution-api:latest
-    restart: unless-stopped
-    environment:
-      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
-      SERVER_URL: http://evolution-api:8080
-      DATABASE_ENABLED: "true"
-      DATABASE_PROVIDER: postgresql
-      DATABASE_CONNECTION_URI: postgresql://notia:${POSTGRES_PASSWORD}@postgres:5432/evolution
-      DATABASE_CONNECTION_CLIENT_NAME: notia
-      # Evolution archiva la conversación entera por defecto. Apagado: notia
-      # no guarda mensajes de chats que no observás, y esto lo haría igual
-      # por debajo. Lo único que se persiste es la sesión de la instancia.
-      DATABASE_SAVE_DATA_INSTANCE: "true"
-      DATABASE_SAVE_DATA_NEW_MESSAGE: "false"
-      DATABASE_SAVE_MESSAGE_UPDATE: "false"
-      DATABASE_SAVE_DATA_CONTACTS: "false"
-      DATABASE_SAVE_DATA_CHATS: "false"
-      DATABASE_SAVE_DATA_LABELS: "false"
-      DATABASE_SAVE_DATA_HISTORIC: "false"
-      WEBHOOK_GLOBAL_ENABLED: "true"
-      WEBHOOK_GLOBAL_URL: http://notia-api:3000/webhook/whatsapp
-      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "false"
-    volumes:
-      # Sin este volumen se pierde la sesión de WhatsApp y hay que
-      # re-escanear el QR en cada reinicio.
-      - evolution-data:/evolution/instances
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   notia-api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.api
     restart: unless-stopped
-    command: pnpm exec tsx packages/api/src/index.ts
     environment:
+      # `postgres` es el nombre del servicio: lo resuelve el DNS de la red de
+      # compose. Nada de esto está fijado en el código.
       DATABASE_URL: postgres://notia:${POSTGRES_PASSWORD}@postgres:5432/notia
-      WEBHOOK_TOKEN: ${WEBHOOK_TOKEN}
       APP_PASSWORD: ${APP_PASSWORD}
       APP_SECRET: ${APP_SECRET}
+      WEBHOOK_TOKEN: ${WEBHOOK_TOKEN}
       PORT: 3000
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/salud || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     depends_on:
       postgres:
         condition: service_healthy
 
-  notia-worker:
-    build: .
+  notia-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
     restart: unless-stopped
-    command: pnpm exec tsx packages/worker/src/index.ts
-    environment:
-      DATABASE_URL: postgres://notia:${POSTGRES_PASSWORD}@postgres:5432/notia
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6-luna}
-      COMPACT_THRESHOLD: ${COMPACT_THRESHOLD:-40000}
-      EVOLUTION_URL: http://evolution-api:8080
-      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE}
-      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
-      MI_JID: ${MI_JID}
-      APP_BASE_URL: ${APP_BASE_URL}
-      APP_SECRET: ${APP_SECRET}
-      TZ_USUARIO: ${TZ_USUARIO:-America/Argentina/Buenos_Aires}
-      LEAD_MINUTOS: ${LEAD_MINUTOS:-60}
+    ports:
+      - "${WEB_PORT:-8080}:80"
     depends_on:
-      # La API corre las migraciones al arrancar; el worker las asume hechas.
       - notia-api
 
 volumes:
   pgdata:
-  evolution-data:
-  caddy-data:
-  caddy-config:
