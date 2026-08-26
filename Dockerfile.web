@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+
+# Imagen del frontend. Multi-stage clásico: Node compila la SPA, nginx la
+# sirve. La imagen final no tiene Node ni el código fuente — solo estáticos.
+
+# ---- Etapa 1: build ----
+FROM node:24-alpine AS build
+RUN corepack enable
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/core/package.json packages/core/
+COPY packages/api/package.json packages/api/
+COPY packages/web/package.json packages/web/
+COPY packages/worker/package.json packages/worker/
+RUN pnpm install --frozen-lockfile
+
+COPY tsconfig.base.json ./
+COPY packages/web packages/web
+RUN pnpm --filter @notia/web build
+
+# ---- Etapa 2: nginx sirve los estáticos ----
+FROM nginx:1.29-alpine AS runtime
+COPY packages/web/nginx.conf /etc/nginx/conf.d/default.conf
+# vite.config.ts emite a ../api/public: el mismo artefacto sirve para los dos
+# modos de despliegue (la API sirviéndolo en un solo proceso, o nginx acá).
+COPY --from=build /app/packages/api/public /usr/share/nginx/html
+EXPOSE 80
