@@ -124,6 +124,36 @@ menos: las dos rutas son catch-all, así que cualquier 404 de la API se
 respondía con un `index.html` que no existía. Ahora se montan solo si el
 build está presente, y los dos modos de despliegue siguen andando.
 
+### Dónde vive el razonamiento técnico
+
+Este archivo es la bitácora de la cursada. El detalle de ingeniería —qué se
+propuso, qué alternativas se descartaron y por qué— vive en `openspec/`:
+
+| Documento | Contiene |
+|---|---|
+| `openspec/specs/despliegue/spec.md` | La spec *as-built* del empaquetado y arranque |
+| `openspec/specs/flujo-de-trabajo/spec.md` | Integración, ramas y las cuatro condiciones del uso de IA |
+| `openspec/changes/archive/2026-08-26-stack-evaluable-sin-terceros/` | El cambio completo: propuesta, delta spec, diseño (D1–D5), tareas y reporte de verificación |
+| `AGENTS.md` | La puerta de entrada para cualquier agente que trabaje acá |
+
+Los artefactos del change se escribieron **después** de implementarlo y están
+marcados como *as-built*: describen el diseño tal como quedó, no simulan haber
+sido anteriores. Las fechas de los commits son las reales.
+
+Adoptar Spec-Driven Development no fue un requisito del TP1. Lo hice porque la
+regla de la materia —*si no lo podés explicar, no lo aprobás*— pide exactamente
+lo que un `design.md` obliga a escribir: el porqué de cada decisión y las
+alternativas que quedaron afuera. Las alternativas descartadas son lo que se
+pregunta en una defensa, y son lo primero que se pierde si no se anotan en el
+momento.
+
+### Movimientos de tag
+
+- **`v1.0.0`, movido una vez.** El tag se había puesto antes de corregir la
+  redacción de la declaración de uso de IA (PR #6). Se movió con
+  `git tag -f v1.0.0 && git push -f origin v1.0.0` para que la release apunte
+  al texto vigente. El contenido técnico del TP no cambió.
+
 ### Declaración de uso de IA
 
 Usé **Claude Code** como asistente en la parte de infraestructura de este TP.
