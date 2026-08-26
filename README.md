@@ -65,9 +65,11 @@ configuración.
 
 ```bash
 docker compose ps --format 'table {{.Service}}\t{{.Status}}'   # estado legible
-docker compose logs -f notia-api   # logs del backend
-docker compose down                # baja todo, CONSERVA los datos
-docker compose down -v             # baja todo y BORRA el volumen de la base
+docker compose logs -f                  # logs de los tres servicios juntos
+docker compose logs -f notia-api        # solo el backend
+docker compose exec postgres psql -U notia -d notia   # consola de la base
+docker compose down                     # baja todo, CONSERVA los datos
+docker compose down -v                  # baja todo y BORRA el volumen
 ```
 
 ### Probar que los datos persisten
