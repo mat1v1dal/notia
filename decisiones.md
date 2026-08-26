@@ -149,10 +149,16 @@ momento.
 
 ### Movimientos de tag
 
-- **`v1.0.0`, movido una vez.** El tag se había puesto antes de corregir la
-  redacción de la declaración de uso de IA (PR #6). Se movió con
-  `git tag -f v1.0.0 && git push -f origin v1.0.0` para que la release apunte
-  al texto vigente. El contenido técnico del TP no cambió.
+- **`v1.0.0`.** Se etiquetó al cerrar el práctico y después se movió dos
+  veces, siempre por documentación: primero para incorporar la corrección de
+  la declaración de uso de IA (PR #6), y luego para incluir el índice hacia
+  `openspec/` y esta misma nota (PR #8). El mecanismo es
+  `git tag -f v1.0.0 && git push -f origin v1.0.0`.
+
+  El contenido técnico del TP —protecciones, pull requests, conflicto
+  resuelto— no cambió en ninguno de los dos movimientos: el commit al que
+  apunta el tag es el último estado de la documentación, no de la
+  configuración.
 
 ### Declaración de uso de IA
 
