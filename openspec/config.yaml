@@ -1,0 +1,40 @@
+# Configuración de Spec-Driven Development para notia.
+schema: spec-driven
+
+context: |
+  Stack: monorepo pnpm (packages/core, api, web, worker). TypeScript 5.9 ESM
+    con moduleResolution NodeNext y `noEmit`: el código se ejecuta con tsx, no
+    hay paso de build en el backend. Node 24.
+  Arquitectura: `core` es el dominio (Drizzle + Postgres, validación con zod) y
+    no conoce transporte. `api` (Hono) y `worker` (OpenAI) lo consumen; `web`
+    (React 19 + Vite) habla con la API por HTTP. Toda mutación de un item
+    escribe en `item_changes`: el sistema es auditable y reversible por diseño.
+  Testing: vitest. Los tests de dominio levantan una PGlite en memoria con las
+    mismas migraciones que corren en producción — sin mocks de la base.
+  Estilo: sin linter ni formatter configurados. Los comentarios explican el
+    porqué, no el qué. Commits convencionales, ramas por unidad de cambio.
+
+rules:
+  proposal:
+    - Incluir plan de rollback en cambios riesgosos
+    - Identificar los paquetes afectados
+  specs:
+    - Escenarios en formato Given/When/Then
+    - Usar RFC 2119 (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Documentar cada decisión de arquitectura con su porqué y las alternativas descartadas
+    - Diagramas de secuencia para flujos con más de dos actores
+  tasks:
+    - Agrupar por fase, numeración jerárquica
+    - Cada tarea completable en una sesión
+  apply:
+    - Seguir los patrones del código existente
+    - No introducir mocks de la base: los tests usan PGlite con migraciones reales
+    tdd: false
+    test_command: "pnpm test"
+  verify:
+    test_command: "pnpm test"
+    build_command: "pnpm typecheck"
+    coverage_threshold: 0
+  archive:
+    - Avisar antes de mergear deltas destructivos
