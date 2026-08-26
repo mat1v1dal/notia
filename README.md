@@ -64,7 +64,7 @@ configuración.
 ### Comandos útiles
 
 ```bash
-docker compose ps                  # estado y healthchecks
+docker compose ps --format 'table {{.Service}}\t{{.Status}}'   # estado legible
 docker compose logs -f notia-api   # logs del backend
 docker compose down                # baja todo, CONSERVA los datos
 docker compose down -v             # baja todo y BORRA el volumen de la base
