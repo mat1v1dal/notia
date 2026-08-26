@@ -64,12 +64,26 @@ configuración.
 ### Comandos útiles
 
 ```bash
-docker compose ps                       # estado y healthchecks
+docker compose ps --format 'table {{.Service}}\t{{.Status}}'   # estado legible
 docker compose logs -f                  # logs de los tres servicios juntos
 docker compose logs -f notia-api        # solo el backend
 docker compose exec postgres psql -U notia -d notia   # consola de la base
 docker compose down                     # baja todo, CONSERVA los datos
 docker compose down -v                  # baja todo y BORRA el volumen
+```
+
+### Probar que los datos persisten
+
+La diferencia entre `down` y `down -v` no es un detalle: es dónde vive el
+estado del sistema. Se comprueba en treinta segundos.
+
+```bash
+# Creá un item desde la app, y después:
+docker compose down       # se van los contenedores, queda el volumen
+docker compose up -d      # el item sigue ahí
+
+docker compose down -v    # esto sí borra el volumen
+docker compose up -d      # base vacía: las migraciones corren de nuevo
 ```
 
 ---
