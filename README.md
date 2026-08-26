@@ -70,6 +70,20 @@ docker compose down                # baja todo, CONSERVA los datos
 docker compose down -v             # baja todo y BORRA el volumen de la base
 ```
 
+### Probar que los datos persisten
+
+La diferencia entre `down` y `down -v` no es un detalle: es dónde vive el
+estado del sistema. Se comprueba en treinta segundos.
+
+```bash
+# Creá un item desde la app, y después:
+docker compose down       # se van los contenedores, queda el volumen
+docker compose up -d      # el item sigue ahí
+
+docker compose down -v    # esto sí borra el volumen
+docker compose up -d      # base vacía: las migraciones corren de nuevo
+```
+
 ---
 
 ## La capa opcional: ingesta por WhatsApp
